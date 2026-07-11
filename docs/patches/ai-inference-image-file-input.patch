@@ -1,0 +1,362 @@
+From cc7048627f9d12dc72d7b2a2263755a90a3068e4 Mon Sep 17 00:00:00 2001
+From: Nicholas Romero <nicholas.romero@unsupervised.com>
+Date: Fri, 10 Jul 2026 20:55:24 -0500
+Subject: [PATCH] Add image-file input: attach images to the prompt as base64
+ image_url content parts
+
+Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+---
+ __tests__/helpers-images.test.ts | 123 +++++++++++++++++++++++++++++++
+ action.yml                       |   4 +
+ src/helpers.ts                   |  88 +++++++++++++++++++++-
+ src/inference.ts                 |  21 +++++-
+ src/main.ts                      |  21 +++++-
+ 5 files changed, 251 insertions(+), 6 deletions(-)
+ create mode 100644 __tests__/helpers-images.test.ts
+
+diff --git a/__tests__/helpers-images.test.ts b/__tests__/helpers-images.test.ts
+new file mode 100644
+index 0000000..dcece57
+--- /dev/null
++++ b/__tests__/helpers-images.test.ts
+@@ -0,0 +1,123 @@
++import {describe, it, expect, beforeEach, afterEach} from 'vitest'
++import * as fs from 'fs'
++import * as path from 'path'
++import * as os from 'os'
++import {parseImageFiles, buildImageContentParts, attachImagesToRequest, flattenMessagesToText} from '../src/helpers.js'
++import {InferenceRequest} from '../src/inference.js'
++
++describe('parseImageFiles', () => {
++  it('returns empty array for empty input', () => {
++    expect(parseImageFiles('')).toEqual([])
++  })
++
++  it('splits on commas and newlines and trims whitespace', () => {
++    expect(parseImageFiles('a.png, b.jpg\n c.webp')).toEqual(['a.png', 'b.jpg', 'c.webp'])
++  })
++})
++
++describe('buildImageContentParts', () => {
++  let tmpDir: string
++
++  beforeEach(() => {
++    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'img-test-'))
++  })
++
++  afterEach(() => {
++    fs.rmSync(tmpDir, {recursive: true, force: true})
++  })
++
++  it('encodes an image as a base64 data URI content part', () => {
++    const imgPath = path.join(tmpDir, 'egg.png')
++    fs.writeFileSync(imgPath, Buffer.from([0x89, 0x50, 0x4e, 0x47]))
++
++    const parts = buildImageContentParts([imgPath])
++    expect(parts).toHaveLength(1)
++    expect(parts[0].type).toBe('image_url')
++    if (parts[0].type === 'image_url') {
++      expect(parts[0].image_url.url).toBe(
++        `data:image/png;base64,${Buffer.from([0x89, 0x50, 0x4e, 0x47]).toString('base64')}`,
++      )
++    }
++  })
++
++  it('throws for missing files', () => {
++    expect(() => buildImageContentParts([path.join(tmpDir, 'nope.png')])).toThrow('Image file was not found')
++  })
++
++  it('throws for unsupported extensions', () => {
++    const badPath = path.join(tmpDir, 'egg.bmp')
++    fs.writeFileSync(badPath, 'x')
++    expect(() => buildImageContentParts([badPath])).toThrow('Unsupported image type')
++  })
++})
++
++describe('attachImagesToRequest', () => {
++  let tmpDir: string
++
++  beforeEach(() => {
++    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'img-test-'))
++  })
++
++  afterEach(() => {
++    fs.rmSync(tmpDir, {recursive: true, force: true})
++  })
++
++  function makeRequest(): InferenceRequest {
++    return {
++      messages: [
++        {role: 'system', content: 'You are a judge'},
++        {role: 'user', content: 'Score this egg'},
++      ],
++      modelName: 'openai/gpt-4o',
++      endpoint: 'https://models.github.ai/inference',
++      token: 'test',
++    }
++  }
++
++  it('converts the last user message into multimodal content parts', () => {
++    const imgPath = path.join(tmpDir, 'egg.jpg')
++    fs.writeFileSync(imgPath, 'fake-jpeg-bytes')
++    const request = makeRequest()
++
++    attachImagesToRequest(request, [imgPath])
++
++    const userMessage = request.messages[1]
++    expect(Array.isArray(userMessage.content)).toBe(true)
++    const parts = userMessage.content as Exclude<InferenceRequest['messages'][0]['content'], string>
++    expect(parts[0]).toEqual({type: 'text', text: 'Score this egg'})
++    expect(parts[1].type).toBe('image_url')
++  })
++
++  it('leaves messages untouched for empty image list', () => {
++    const request = makeRequest()
++    attachImagesToRequest(request, [])
++    expect(request.messages[1].content).toBe('Score this egg')
++  })
++
++  it('throws when there is no user message', () => {
++    const imgPath = path.join(tmpDir, 'egg.jpg')
++    fs.writeFileSync(imgPath, 'fake')
++    const request = makeRequest()
++    request.messages = [{role: 'system', content: 'only system'}]
++    expect(() => attachImagesToRequest(request, [imgPath])).toThrow('no user message')
++  })
++})
++
++describe('flattenMessagesToText', () => {
++  it('passes through string content and flattens parts, dropping images', () => {
++    const messages: InferenceRequest['messages'] = [
++      {role: 'system', content: 'sys'},
++      {
++        role: 'user',
++        content: [
++          {type: 'text', text: 'Score this egg'},
++          {type: 'image_url', image_url: {url: 'data:image/png;base64,AAAA'}},
++        ],
++      },
++    ]
++    expect(flattenMessagesToText(messages)).toEqual([
++      {role: 'system', content: 'sys'},
++      {role: 'user', content: 'Score this egg'},
++    ])
++  })
++})
+diff --git a/action.yml b/action.yml
+index e330610..9df3d1c 100644
+--- a/action.yml
++++ b/action.yml
+@@ -26,6 +26,10 @@ inputs:
+     description: Template variables in YAML format mapping variable names to file paths. The file contents will be used for templating.
+     required: false
+     default: ''
++  image-file:
++    description: 'Comma- or newline-separated paths to image files (png, jpeg, webp, gif) to attach to the user prompt as image_url content parts. Requires a vision-capable model and the "github-models" provider.'
++    required: false
++    default: ''
+   model:
+     description: The model to use
+     required: false
+diff --git a/src/helpers.ts b/src/helpers.ts
+index 6502256..fd64607 100644
+--- a/src/helpers.ts
++++ b/src/helpers.ts
+@@ -1,8 +1,17 @@
+ import * as core from '@actions/core'
+ import * as fs from 'fs'
++import * as path from 'path'
+ import * as yaml from 'js-yaml'
+ import {PromptConfig} from './prompt.js'
+-import {InferenceRequest} from './inference.js'
++import {InferenceRequest, MessageContentPart} from './inference.js'
++
++const IMAGE_MIME_TYPES: Record<string, string> = {
++  '.png': 'image/png',
++  '.jpg': 'image/jpeg',
++  '.jpeg': 'image/jpeg',
++  '.webp': 'image/webp',
++  '.gif': 'image/gif',
++}
+ 
+ /**
+  * Force-exit the process to avoid hanging on open connections.
+@@ -169,6 +178,83 @@ function validateAndMaskHeaders(headers: Record<string, unknown>): Record<string
+   return validHeaders
+ }
+ 
++/**
++ * Parse the image-file input into a list of file paths.
++ * Accepts comma- or newline-separated paths.
++ */
++export function parseImageFiles(input: string): string[] {
++  if (!input) return []
++  return input
++    .split(/[\n,]/)
++    .map(s => s.trim())
++    .filter(s => s.length > 0)
++}
++
++/**
++ * Read image files and convert them to image_url content parts with
++ * base64 data URIs, as accepted by vision-capable chat completion models.
++ */
++export function buildImageContentParts(imagePaths: string[]): MessageContentPart[] {
++  return imagePaths.map(imagePath => {
++    if (!fs.existsSync(imagePath)) {
++      throw new Error(`Image file was not found: ${imagePath}`)
++    }
++    const ext = path.extname(imagePath).toLowerCase()
++    const mimeType = IMAGE_MIME_TYPES[ext]
++    if (!mimeType) {
++      throw new Error(
++        `Unsupported image type "${ext}" for ${imagePath} (supported: ${Object.keys(IMAGE_MIME_TYPES).join(', ')})`,
++      )
++    }
++    const base64 = fs.readFileSync(imagePath).toString('base64')
++    core.info(`Attaching image ${imagePath} (${mimeType}, ${base64.length} base64 chars)`)
++    return {
++      type: 'image_url',
++      image_url: {url: `data:${mimeType};base64,${base64}`},
++    }
++  })
++}
++
++/**
++ * Attach image content parts to the last user message of an inference request,
++ * converting its string content into a multimodal content-part array.
++ */
++export function attachImagesToRequest(request: InferenceRequest, imagePaths: string[]): void {
++  if (imagePaths.length === 0) return
++  const imageParts = buildImageContentParts(imagePaths)
++
++  const lastUserMessage = [...request.messages].reverse().find(msg => msg.role === 'user')
++  if (!lastUserMessage) {
++    throw new Error('Cannot attach images: no user message found in the prompt')
++  }
++
++  const existingParts: MessageContentPart[] =
++    typeof lastUserMessage.content === 'string'
++      ? [{type: 'text', text: lastUserMessage.content}]
++      : lastUserMessage.content
++
++  lastUserMessage.content = [...existingParts, ...imageParts]
++}
++
++/**
++ * Flatten multimodal message content back to plain text (dropping images),
++ * for providers that only accept string content (e.g. the Copilot CLI).
++ */
++export function flattenMessagesToText(
++  messages: InferenceRequest['messages'],
++): Array<{role: 'system' | 'user' | 'assistant' | 'tool'; content: string}> {
++  return messages.map(msg => ({
++    role: msg.role,
++    content:
++      typeof msg.content === 'string'
++        ? msg.content
++        : msg.content
++            .filter((part): part is {type: 'text'; text: string} => part.type === 'text')
++            .map(part => part.text)
++            .join('\n'),
++  }))
++}
++
+ /**
+  * Build complete InferenceRequest from prompt config and inputs
+  */
+diff --git a/src/inference.ts b/src/inference.ts
+index 0f3cc7c..71e0af4 100644
+--- a/src/inference.ts
++++ b/src/inference.ts
+@@ -2,15 +2,21 @@ import * as core from '@actions/core'
+ import OpenAI from 'openai'
+ import {GitHubMCPClient, executeToolCalls, ToolCall} from './mcp.js'
+ 
++export type MessageContentPart =
++  | {type: 'text'; text: string}
++  | {type: 'image_url'; image_url: {url: string; detail?: 'low' | 'high' | 'auto'}}
++
++export type MessageContent = string | MessageContentPart[]
++
+ interface ChatMessage {
+   role: 'system' | 'user' | 'assistant' | 'tool'
+-  content: string | null
++  content: MessageContent | null
+   tool_calls?: ToolCall[]
+   tool_call_id?: string
+ }
+ 
+ export interface InferenceRequest {
+-  messages: Array<{role: 'system' | 'user' | 'assistant' | 'tool'; content: string}>
++  messages: Array<{role: 'system' | 'user' | 'assistant' | 'tool'; content: MessageContent}>
+   modelName: string
+   maxTokens?: number // Deprecated
+   maxCompletionTokens?: number
+@@ -173,7 +179,16 @@ export async function mcpInference(
+     .reverse()
+     .find(msg => msg.role === 'assistant')
+ 
+-  return lastAssistantMessage?.content || null
++  const lastContent = lastAssistantMessage?.content
++  if (typeof lastContent === 'string') {
++    return lastContent || null
++  }
++  return (
++    lastContent
++      ?.filter((part): part is {type: 'text'; text: string} => part.type === 'text')
++      .map(part => part.text)
++      .join('\n') || null
++  )
+ }
+ 
+ /**
+diff --git a/src/main.ts b/src/main.ts
+index 0698a27..20449d3 100644
+--- a/src/main.ts
++++ b/src/main.ts
+@@ -4,7 +4,15 @@ import * as tmp from 'tmp'
+ import {connectToGitHubMCP} from './mcp.js'
+ import {simpleInference, mcpInference} from './inference.js'
+ import {copilotInference} from './copilot.js'
+-import {loadContentFromFileOrInput, buildInferenceRequest, parseCustomHeaders, safeExit} from './helpers.js'
++import {
++  loadContentFromFileOrInput,
++  buildInferenceRequest,
++  parseCustomHeaders,
++  parseImageFiles,
++  attachImagesToRequest,
++  flattenMessagesToText,
++  safeExit,
++} from './helpers.js'
+ import {
+   loadPromptFile,
+   parseTemplateVariables,
+@@ -119,6 +127,15 @@ export async function run(): Promise<void> {
+     const enableMcp = core.getBooleanInput('enable-github-mcp') || false
+     const provider = parseProvider(core.getInput('provider'))
+ 
++    const imageFiles = parseImageFiles(core.getInput('image-file'))
++    if (imageFiles.length > 0) {
++      if (provider === 'copilot') {
++        core.warning('image-file is ignored when provider is "copilot"')
++      } else {
++        attachImagesToRequest(inferenceRequest, imageFiles)
++      }
++    }
++
+     let modelResponse: string | null = null
+ 
+     if (provider === 'copilot') {
+@@ -133,7 +150,7 @@ export async function run(): Promise<void> {
+       }
+ 
+       modelResponse = await copilotInference({
+-        messages: inferenceRequest.messages,
++        messages: flattenMessagesToText(inferenceRequest.messages),
+         model: modelName,
+         cliPath: core.getInput('copilot-cli-path') || undefined,
+         allowTools: parseAllowTools(core.getInput('copilot-allow-tools')),
+-- 
+2.50.1 (Apple Git-155)
+
