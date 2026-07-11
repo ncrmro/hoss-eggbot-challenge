@@ -19,7 +19,7 @@ No preconfigured machines. No borrowing someone's already-working laptop. You, t
 5. **Automate.** Build an **agent skill** (Claude, Gemini, Codex, pi — dealer's choice) that can handle any or all of the lifecycle: full setup, teardown, and generating new designs. The dream: an agent that can take a fresh machine to a finished egg.
 6. **Submit.** Egg photo + SVG + agent skill + proof it ran from *your* machine.
 
-"Whatever means possible" is the spirit of this challenge. Scavenged 9V wall wart? Great. Mini-B USB cable excavated from a 2009 junk drawer? Iconic. Running Inkscape in a VM because your OS hates you? Respect.
+"Whatever means possible" is the spirit of this challenge. The hardware is provided (see below) — the chaos is in the software. Running Inkscape in a VM because your OS hates you? Respect. Agent wrote your udev rules? Iconic.
 
 ## Know Your Enemy (Hardware Facts)
 
@@ -33,12 +33,22 @@ No preconfigured machines. No borrowing someone's already-working laptop. You, t
 
 ⚠️ USB is data only — the EggBot still needs its own 9 V supply. Don't update the EBB firmware unless you truly must, and never while USB connection problems are unresolved.
 
+## What's Provided
+
+HOSS supplies the shared hardware — you bring your laptop and your wits:
+
+- 🤖 The **EggBot** itself (with its 9 V PSU)
+- 🔌 **USB cable**
+- 🖊️ **Markers**
+- 🥚 **Eggs**
+
+Everything else — software setup, design, and agentic tooling — is on you.
+
 ## Tracks
 
-- **Track A — Classic Egg:** a real (or blown) chicken egg. Maximum charm, maximum fragility.
-- **Track B — Open Egg Object:** wooden egg, plastic egg, ping-pong ball, ornament. Beginner-friendly.
-- **Track C — Technical Flex:** judged on precision, multi-pass registration, hatch fills, generative geometry.
-- **Track D — Wildcard:** absurd, funny, experimental. If it was plotted by the EggBot, it counts.
+- **Classic Egg + Best Design:** plot on a real egg; judged on the best design. Maximum charm, maximum fragility.
+- **Open Source Model + Agentic Tooling:** get there using open source models and agentic tooling — judged on how much of the setup → design → plot loop your agent handles.
+- **Wildcard:** absurd, funny, experimental. If it was plotted by the EggBot, it counts.
 
 ## Proof of Local Bring-Up (required)
 

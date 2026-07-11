@@ -2,7 +2,7 @@
 
 - **Team name:**
 - **Members:**
-- **Track:** (A: Classic Egg / B: Open Egg Object / C: Technical Flex / D: Wildcard)
+- **Track:** (Classic Egg + Best Design / Open Source Model + Agentic Tooling / Wildcard)
 - **Operating system:**
 - **Egg/object type:**
 - **Pens/materials used:**
