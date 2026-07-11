@@ -1,4 +1,6 @@
-# 🥚 The Hoss EggBot Challenge
+# 🥚 The HOSS EggBot Challenge
+
+A challenge by the [Houston Open Source Society](https://houstonopensourcesociety.com/) (HOSS) — building a vibrant open source community in Houston, Texas. Join us on [Discord](https://discord.gg/FgGS5quF7P) or at our Wednesday 6 PM meetups.
 
 > *"Revive the EggBot by any means necessary. Then make it draw something glorious on an egg."*
 
