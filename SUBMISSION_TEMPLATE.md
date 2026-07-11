@@ -15,6 +15,13 @@
 - **Title:**
 - **Description:**
 
+## Agent Skill
+
+- **Agent(s) targeted:** (Claude / Gemini / Codex / pi / other)
+- **Lifecycle coverage:** (setup / design generation / plotting / teardown)
+- **How to invoke:**
+- **Proof it worked:** (transcript, recording, or artifacts in `skills/`)
+
 ## War Stories
 
 - **Biggest setup problem:**

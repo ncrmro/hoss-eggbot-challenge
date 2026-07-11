@@ -12,7 +12,8 @@ No preconfigured machines. No borrowing someone's already-working laptop. You, t
 2. **Calibrate.** Pen height, egg alignment, plot bounds. A wobbly egg is a humbling teacher.
 3. **Design.** Create an original egg artwork (SVG). Hand-drawn, coded, generative, AI-assisted (disclose it!) — all fair game.
 4. **Plot.** Make the EggBot draw it on an egg (or egg-shaped object — see Tracks below).
-5. **Submit.** Egg photo + SVG + proof it ran from *your* machine.
+5. **Automate.** Build an **agent skill** (Claude, Gemini, Codex, pi — dealer's choice) that can handle any or all of the lifecycle: full setup, teardown, and generating new designs. The dream: an agent that can take a fresh machine to a finished egg.
+6. **Submit.** Egg photo + SVG + agent skill + proof it ran from *your* machine.
 
 "Whatever means possible" is the spirit of this challenge. Scavenged 9V wall wart? Great. Mini-B USB cable excavated from a 2009 junk drawer? Iconic. Running Inkscape in a VM because your OS hates you? Respect.
 
@@ -68,10 +69,11 @@ Bonus points for a timelapse, notes on failed attempts, and tales of hardship.
 
 | Category | Points |
 |---|---|
-| Local setup success (machine obeys your laptop, clean test plot, docs) | 20 |
-| Design quality (impact, originality, use of egg curvature, humor/elegance) | 30 |
-| Technical execution (clean lines, registration, curve handling) | 25 |
-| Craft & presentation (polished egg, colors, photo) | 15 |
+| Local setup success (machine obeys your laptop, clean test plot, docs) | 15 |
+| Design quality (impact, originality, use of egg curvature, humor/elegance) | 25 |
+| Technical execution (clean lines, registration, curve handling) | 20 |
+| **Agent skills** (a Claude/Gemini/Codex/pi/etc. skill that automates setup, design generation, plotting, and/or teardown — see [CONTRIBUTING.md](CONTRIBUTING.md)) | 20 |
+| Craft & presentation (polished egg, colors, photo) | 10 |
 | Reproducibility (usable SVG, process notes, re-plottable by others) | 10 |
 
 **Bonus awards:** Best First Successful Plot · Most Beautiful Failure · Best Use of One Line · Funniest Egg · Best Recovery From Disaster · People's Choice.
@@ -84,9 +86,11 @@ Reward entries that *understand the machine*: continuous linework, restraint wit
 
 ## How to Submit
 
-1. Fork/branch this repo.
+Submissions are **fork + pull request only** — see [CONTRIBUTING.md](CONTRIBUTING.md) for the full workflow. Short version:
+
+1. Fork this repo and branch.
 2. Copy [SUBMISSION_TEMPLATE.md](SUBMISSION_TEMPLATE.md) into `submissions/<your-team-name>/`.
-3. Add your SVG, photos, and notes.
-4. Open a PR. The gallery judges you now.
+3. Add your SVG, photos, agent skill(s), and notes.
+4. Open a PR titled `Submission: <your-team-name>`. The gallery judges you now.
 
 Good luck. May your pen stay down and your eggs stay whole. 🐣
