@@ -2,6 +2,8 @@
 
 > *"Revive the EggBot by any means necessary. Then make it draw something glorious on an egg."*
 
+![The EggBot in all its glory](https://shop.emscdn.com/sites/eggbot/ebdlx_1600-2.jpg)
+
 Somewhere out there is an [EggBot](https://egg-bot.com/) — a small, noble machine whose only purpose in life is to draw on eggs. Your mission is to get it up and running from **your own computer**, using **whatever means possible**, and plot the best egg design you can.
 
 No preconfigured machines. No borrowing someone's already-working laptop. You, the EggBot, a USB cable of questionable vintage, and your wits.
